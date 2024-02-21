@@ -7,7 +7,8 @@
 
 using namespace std;
 
-class CTVSet {
+class CTVSet
+{
 private:
     bool m_isOn;
     int m_currentChannel;

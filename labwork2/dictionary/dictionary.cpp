@@ -20,6 +20,7 @@ const string ENTER_TRANSLATION_PROMPT = "\". Введите перевод ил�
 const string WORD_SAVED_MESSAGE = "Слово \"";
 const string SAVED_IN_DICTIONARY_MESSAGE = "\" сохранено в словаре как \"";
 
+
 string ToLowerCase(const string& str) 
 {
     string lowerStr = str;
@@ -104,8 +105,11 @@ void SaveInDictionary(
 )
 {
     string translation;
-    cout << UNKNOWN_WORD_MESSAGE << input << ENTER_TRANSLATION_PROMPT << "\n";
-    getline(cin, translation);
+    if(!(input == EXIT_COMMAND))
+    {
+        cout << UNKNOWN_WORD_MESSAGE << input << ENTER_TRANSLATION_PROMPT << "\n";
+        getline(cin, translation);
+    }
     if (!translation.empty())
     {
         dictionary[ToLowerCase(input)] = translation;

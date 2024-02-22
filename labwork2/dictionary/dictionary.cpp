@@ -1,34 +1,39 @@
-п»ї#include <iostream>
+#include "dictionary.h"
+#include <iostream>
 #include <fstream>
 #include <unordered_map>
-#include <string>
 #include <algorithm>
+#include <string>
 #include <Windows.h>
 
 using namespace std;
 
-
 const string PROMPT = "> ";
-const string EXIT_MESSAGE = "Р”Рѕ СЃРІРёРґР°РЅРёСЏ.";
+const string EXIT_MESSAGE = "До свидания.";
 const string EXIT_COMMAND = "...";
-const string SAVE_CHANGES_PROMPT = "Р’ СЃР»РѕРІР°СЂСЊ Р±С‹Р»Рё РІРЅРµСЃРµРЅС‹ РёР·РјРµРЅРµРЅРёСЏ. Р’РІРµРґРёС‚Рµ Y РёР»Рё y РґР»СЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ РїРµСЂРµРґ РІС‹С…РѕРґРѕРј.";
-const string SAVE_SUCCESS_MESSAGE = "РР·РјРµРЅРµРЅРёСЏ СЃРѕС…СЂР°РЅРµРЅС‹. Р”Рѕ СЃРІРёРґР°РЅРёСЏ.";
-const string NO_SAVE_MESSAGE = "РР·РјРµРЅРµРЅРёСЏ РЅРµ СЃРѕС…СЂР°РЅРµРЅС‹. Р”Рѕ СЃРІРёРґР°РЅРёСЏ.";
-const string OPEN_FILE_ERROR_MESSAGE = "РћС€РёР±РєР° РѕС‚РєСЂС‹С‚РёСЏ С„Р°Р№Р»Р°: ";
-const string UNKNOWN_WORD_MESSAGE = "РќРµРёР·РІРµСЃС‚РЅРѕРµ СЃР»РѕРІРѕ \"";
-const string ENTER_TRANSLATION_PROMPT = "\". Р’РІРµРґРёС‚Рµ РїРµСЂРµРІРѕРґ РёР»Рё РїСѓСЃС‚СѓСЋ СЃС‚СЂРѕРєСѓ РґР»СЏ РѕС‚РєР°Р·Р°.";
-const string WORD_SAVED_MESSAGE = "РЎР»РѕРІРѕ \"";
-const string SAVED_IN_DICTIONARY_MESSAGE = "\" СЃРѕС…СЂР°РЅРµРЅРѕ РІ СЃР»РѕРІР°СЂРµ РєР°Рє \"";
+const string SAVE_CHANGES_PROMPT = "В словарь были внесены изменения. Введите Y или y для сохранения перед выходом.";
+const string SAVE_SUCCESS_MESSAGE = "Изменения сохранены. До свидания.";
+const string NO_SAVE_MESSAGE = "Изменения не сохранены. До свидания.";
+const string OPEN_FILE_ERROR_MESSAGE = "Ошибка открытия файла: ";
+const string UNKNOWN_WORD_MESSAGE = "Неизвестное слово \"";
+const string ENTER_TRANSLATION_PROMPT = "\". Введите перевод или пустую строку для отказа.";
+const string WORD_SAVED_MESSAGE = "Слово \"";
+const string SAVED_IN_DICTIONARY_MESSAGE = "\" сохранено в словаре как \"";
 
 
-string ToLowerCase(const string& str) 
+string ToLowerCase(const string& str)
 {
     string lowerStr = str;
     transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
     return lowerStr;
 }
 
-void DictionaryFillingFromFile(unordered_map<string, string>& dictionary, const char* dictionaryFileName)
+
+void ReadDictionaryFromFile(
+    unordered_map<string, string>& forwardDictionary,
+    unordered_map<string, string>& reverseDictionary,
+    const string& dictionaryFileName
+)
 {
     ifstream file(dictionaryFileName);
     if (file.is_open())
@@ -41,7 +46,8 @@ void DictionaryFillingFromFile(unordered_map<string, string>& dictionary, const 
             {
                 string key = line.substr(0, pos);
                 string value = line.substr(pos + 1);
-                dictionary[ToLowerCase(key)] = value;
+                forwardDictionary[ToLowerCase(key)] = value;
+                reverseDictionary[ToLowerCase(value)] = key;
             }
         }
         file.close();
@@ -50,16 +56,16 @@ void DictionaryFillingFromFile(unordered_map<string, string>& dictionary, const 
     {
         cerr << OPEN_FILE_ERROR_MESSAGE << dictionaryFileName << "\n";
     }
-
 }
 
 void OverwriteTheDictionaryFile(
-    const string& input, 
-    bool& programRunning, 
-    bool& changesMade, 
-    unordered_map<string, string>& dictionary, 
-    const char* dictionaryFileName
-) 
+    const string& input,
+    bool& programRunning,
+    bool& changesMade,
+    const unordered_map<string, string>& forwardDictionary,
+    const unordered_map<string, string>& reverseDictionary,
+    const string& dictionaryFileName
+)
 {
     if (input == EXIT_COMMAND)
     {
@@ -73,9 +79,13 @@ void OverwriteTheDictionaryFile(
                 ofstream outFile(dictionaryFileName);
                 if (outFile.is_open())
                 {
-                    for (const auto& pair : dictionary)
+                    for (const auto& pair : forwardDictionary)
                     {
                         outFile << pair.first << "," << pair.second << "\n";
+                    }
+                    for (const auto& pair : reverseDictionary)
+                    {
+                        outFile << pair.second << "," << pair.first << "\n";
                     }
                     outFile.close();
                     cout << SAVE_SUCCESS_MESSAGE << "\n";
@@ -99,62 +109,59 @@ void OverwriteTheDictionaryFile(
 }
 
 void SaveInDictionary(
-    const string& input, 
-    unordered_map<string, string>& dictionary, 
+    const string& input,
+    unordered_map<string, string>& forwardDictionary,
+    unordered_map<string, string>& reverseDictionary,
     bool& changesMade
 )
 {
     string translation;
-    if(!(input == EXIT_COMMAND))
+    if (!(input == EXIT_COMMAND))
     {
         cout << UNKNOWN_WORD_MESSAGE << input << ENTER_TRANSLATION_PROMPT << "\n";
         getline(cin, translation);
     }
     if (!translation.empty())
     {
-        dictionary[ToLowerCase(input)] = translation;
+        forwardDictionary[ToLowerCase(input)] = translation;
+        reverseDictionary[translation] = input;
         cout << WORD_SAVED_MESSAGE << input << SAVED_IN_DICTIONARY_MESSAGE << translation << "\".\n";
         changesMade = true;
     }
 }
 
-int main(int argc, char* argv[]) 
+void DictionaryRun(
+    unordered_map<string, string>& forwardDictionary,
+    unordered_map<string, string>& reverseDictionary,
+    const string& dictionaryFileName
+)
 {
-    SetConsoleCP(1251);
-    SetConsoleOutputCP(1251);
-
-    if (argc != 2) 
-    {
-        cerr << "Usage: " << argv[0] << " <dictionary_file>\n";
-        return 1;
-    }
-
-    char* dictionaryFileName = argv[1];
-    unordered_map<string, string> dictionary;
-
-    DictionaryFillingFromFile(dictionary, dictionaryFileName);
-
     bool changesMade = false;
     bool programRunning = true;
-
     string input;
     while (programRunning)
     {
         cout << PROMPT;
         getline(cin, input);
 
-        OverwriteTheDictionaryFile(input, programRunning, changesMade, dictionary, dictionaryFileName);
+        OverwriteTheDictionaryFile(input, programRunning, changesMade, forwardDictionary, reverseDictionary, dictionaryFileName);
 
-        auto it = dictionary.find(ToLowerCase(input));
-        if (it != dictionary.end()) 
+        auto it = forwardDictionary.find(ToLowerCase(input));
+        if (it != forwardDictionary.end())
         {
             cout << it->second << "\n";
         }
-        else 
+        else
         {
-            SaveInDictionary(input, dictionary, changesMade);
+            it = reverseDictionary.find(ToLowerCase(input));
+            if (it != reverseDictionary.end())
+            {
+                cout << it->second << "\n";
+            }
+            else
+            {
+                SaveInDictionary(input, forwardDictionary, reverseDictionary, changesMade);
+            }
         }
     }
-
-    return 0;
 }

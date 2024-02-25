@@ -1,0 +1,4 @@
+﻿  labirynth.cpp
+D:\oop2024\labyrinth\labirynth\labirynth\labirynth.cpp(27,32): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
+D:\oop2024\labyrinth\labirynth\labirynth\labirynth.cpp(28,35): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
+  labirynth.vcxproj -> D:\oop2024\labyrinth\labirynth\x64\Debug\labirynth.exe
